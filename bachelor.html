@@ -14,7 +14,9 @@
         const webAppUrl = "https://script.google.com/macros/s/AKfycbz6ANZkWCnjgLfbECPnBG_gBJuGOQOFdUXUokGH-BLPL5bT67A_g3_cjiVmCdzhl9JW/exec";
 
         async function fetchData(sheetName) {
+            console.log("Fetching data from:", `${webAppUrl}?action=getData&sheetName=${sheetName}`);
             const response = await fetch(`${webAppUrl}?action=getData&sheetName=${sheetName}`);
+            console.log("Fetch Response:", response); // Debug fetch response
             const data = await response.json();
             return data;
         }
@@ -32,12 +34,13 @@
 
         async function loadPoll(sheetName) {
             const data = await fetchData(sheetName);
-            console.log("Data from fetchData:", data); // Added console.log for data
+            console.log("Data from fetchData:", data);
 
             const container = document.getElementById("poll-container");
             container.innerHTML = "";
 
             data.forEach(item => {
+                console.log("Current Item:", item); // Debug each item
                 const itemDiv = document.createElement("div");
                 itemDiv.innerHTML = `${item.Name}: Upvotes: ${item.Upvotes || 0}, Downvotes: ${item.Downvotes || 0}
                     <button onclick="updateVote('${sheetName}', '${item.Name}', 'upvote')">Upvote</button>
@@ -45,7 +48,7 @@
                 container.appendChild(itemDiv);
             });
 
-            console.log("Generated HTML:", container.innerHTML); // Added console.log for HTML
+            console.log("Generated HTML:", container.innerHTML);
         }
 
         const sheetName = "Bachelor";
