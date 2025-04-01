@@ -6,8 +6,12 @@
 <body>
     <h1>Bachelor Poll</h1>
     <div id="poll-container"></div>
+    <input type="text" id="newName" placeholder="Enter a new name">
+    <button onclick="addNewName('Bachelor')">Add Name</button>
+    <button onclick="window.location.href='bachelorette.html'">Go to Bachelorette Poll</button>
+    <a href="index.html">Home</a>
     <script>
-        const webAppUrl = "https://script.google.com/macros/s/AKfycbxSMbRNdScbx4Jz_1yZhmeW8tCFRwzSfoQHlu7NuhqwIUZXn4_EL2fEddl7IsKUIO0w/exec"; // Replace with the URL you copied
+        const webAppUrl = "https://script.google.com/macros/s/AKfycbxSMbRNdScbx4Jz_1yZhmeW8tCFRwzSfoQHlu7NuhqwIUZXn4_EL2fEddl7IsKUIO0w/exec"; // Replace with your web app URL
 
         async function fetchData(sheetName) {
             const response = await fetch(`${webAppUrl}?action=getData&sheetName=${sheetName}`);
@@ -15,19 +19,33 @@
             return data;
         }
 
-        async function loadPoll() {
-            const data = await fetchData("Bachelor"); // Hardcoded to "Bachelor" for now
+        async function addNewName(sheetName) {
+            const name = document.getElementById("newName").value;
+            await fetch(`${webAppUrl}?action=addData&sheetName=${sheetName}&name=${name}`);
+            loadPoll(sheetName);
+        }
+
+        async function updateVote(sheetName, name, voteType) {
+            await fetch(`${webAppUrl}?action=updateVote&sheetName=${sheetName}&name=${name}&voteType=${voteType}`);
+            loadPoll(sheetName);
+        }
+
+        async function loadPoll(sheetName) {
+            const data = await fetchData(sheetName);
             const container = document.getElementById("poll-container");
             container.innerHTML = "";
 
             data.forEach(item => {
                 const itemDiv = document.createElement("div");
-                itemDiv.textContent = `${item.Name}: Upvotes: ${item.Upvotes}, Downvotes: ${item.Downvotes}`;
+                itemDiv.innerHTML = `${item.Name}: Upvotes: ${item.Upvotes || 0}, Downvotes: ${item.Downvotes || 0}
+                    <button onclick="updateVote('${sheetName}', '${item.Name}', 'upvote')">Upvote</button>
+                    <button onclick="updateVote('${sheetName}', '${item.Name}', 'downvote')">Downvote</button>`;
                 container.appendChild(itemDiv);
             });
         }
 
-        loadPoll();
+        const sheetName = "Bachelor"; // Explicitly set for this page
+        loadPoll(sheetName);
     </script>
 </body>
 </html>
