@@ -11,7 +11,7 @@
     <button onclick="window.location.href='bachelorette.html'">Go to Bachelorette Poll</button>
     <a href="index.html">Home</a>
     <script>
-        const webAppUrl = "https://script.google.com/macros/s/AKfycbxSMbRNdScbx4Jz_1yZhmeW8tCFRwzSfoQHlu7NuhqwIUZXn4_EL2fEddl7IsKUIO0w/exec"; // Replace with your web app URL
+        const webAppUrl = "https://script.google.com/macros/s/AKfycbxSMbRNdScbx4Jz_1yZhmeW8tCFRwzSfoQHlu7NuhqwIUZXn4_EL2fEddl7IsKUIO0w/exec";
 
         async function fetchData(sheetName) {
             const response = await fetch(`${webAppUrl}?action=getData&sheetName=${sheetName}`);
@@ -44,7 +44,7 @@
             });
         }
 
-        const sheetName = "Bachelor"; // Explicitly set for this page
+        const sheetName = "Bachelor";
         loadPoll(sheetName);
     </script>
 </body>
