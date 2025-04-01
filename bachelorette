@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bachelorette Poll</title>
+</head>
+<body>
+    <h1>Bachelorette Poll</h1>
+    <div id="poll-container"></div>
+    <script>
+        const webAppUrl = "https://script.google.com/macros/s/AKfycbxSMbRNdScbx4Jz_1yZhmeW8tCFRwzSfoQHlu7NuhqwIUZXn4_EL2fEddl7IsKUIO0w/exec"; // Replace with the URL you copied
+
+        async function fetchData(sheetName) {
+            const response = await fetch(`${webAppUrl}?action=getData&sheetName=${sheetName}`);
+            const data = await response.json();
+            return data;
+        }
+
+        async function loadPoll() {
+            const data = await fetchData("Bachelorette"); // Hardcoded to "Bachelor" for now
+            const container = document.getElementById("poll-container");
+            container.innerHTML = "";
+
+            data.forEach(item => {
+                const itemDiv = document.createElement("div");
+                itemDiv.textContent = `${item.Name}: Upvotes: ${item.Upvotes}, Downvotes: ${item.Downvotes}`;
+                container.appendChild(itemDiv);
+            });
+        }
+
+        loadPoll();
+    </script>
+</body>
+</html>
