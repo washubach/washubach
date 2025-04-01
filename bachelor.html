@@ -32,6 +32,8 @@
 
         async function loadPoll(sheetName) {
             const data = await fetchData(sheetName);
+            console.log("Data from fetchData:", data); // Added console.log for data
+
             const container = document.getElementById("poll-container");
             container.innerHTML = "";
 
@@ -42,6 +44,8 @@
                     <button onclick="updateVote('${sheetName}', '${item.Name}', 'downvote')">Downvote</button>`;
                 container.appendChild(itemDiv);
             });
+
+            console.log("Generated HTML:", container.innerHTML); // Added console.log for HTML
         }
 
         const sheetName = "Bachelor";
