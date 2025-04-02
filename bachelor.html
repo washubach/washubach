@@ -82,9 +82,9 @@
     </style>
 </head>
 <body>
-    <h1>Bachelor Poll</h1>
+    <h1>Who's the Most Eligible Bachelor from WashU Class of 2020?</h1>
     <p style="font-size: 0.9em; color: #333;">Names are sorted by highest upvotes. You can only upvote each name once. Please add new entries as you see fit - that will also give them an upvote.</p>
-
+    <p style="font-size: 0.9em; color: #333;">Just saying... it would be really cool to have the most eligible bachelor and bachelorette go on a real date together...</p>
     <div id="poll-container">
         <p id="loading-indicator">Loading poll...</p>
     </div>
@@ -92,14 +92,14 @@
     <div class="add-section">
         <input type="text" id="newName" placeholder="Enter a new name">
         <button onclick="addNewNameToPoll()">Add Name</button>
-         <span id="add-status" class="status-message"></span> </div>
+         <span id="add-status" class="status-message"></span>
+    </div>
 
     <script>
         // --- Configuration ---
-        // UPDATED with your newest deployment URL
-        const webAppUrl = "https://script.google.com/macros/s/AKfycbyq_WFXfVJ-q-mJHlPpI3xRTO97Vh9eZEHhMFF2Dywc1cmkOWxF9n1cufdV06EYcbZG/exec";
+        const webAppUrl = "https://script.google.com/macros/s/AKfycbyq_WFXfVJ-q-mJHlPpI3xRTO97Vh9eZEHhMFF2Dywc1cmkOWxF9n1cufdV06EYcbZG/exec"; // Your current deployment URL
         const currentSheetName = "Bachelor";
-        const VOTE_STORAGE_KEY = 'bachelorPollVotes'; // Key for localStorage
+        const VOTE_STORAGE_KEY = 'bachelorPollVotes';
 
         // --- DOM Elements ---
         const pollContainer = document.getElementById("poll-container");
@@ -108,7 +108,6 @@
         const loadingIndicator = document.getElementById("loading-indicator");
 
         // --- Local Storage Helpers ---
-        // (No user-facing text here)
         function getVotedNames() {
             try {
                 const storedVotes = localStorage.getItem(VOTE_STORAGE_KEY);
@@ -118,9 +117,7 @@
                          return parsedVotes;
                     }
                 }
-            } catch (error) {
-                console.error("Error reading votes from localStorage:", error);
-            }
+            } catch (error) { console.error("Error reading votes from localStorage:", error); }
             return {};
         }
         function markNameAsVoted(name) {
@@ -130,14 +127,11 @@
                 currentVotes[name] = true;
                 localStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(currentVotes));
                  console.log(`Stored vote for ${name} in localStorage.`);
-            } catch (error) {
-                console.error(`Error saving vote for ${name} to localStorage:`, error);
-            }
+            } catch (error) { console.error(`Error saving vote for ${name} to localStorage:`, error); }
         }
 
         // --- Fetching and Displaying Data ---
         async function fetchData(sheetName) {
-            // (This function remains the same - error messages handled below)
             console.log("Fetching data from:", `${webAppUrl}?action=getData&sheetName=${sheetName}`);
             let responseData = null;
             try {
@@ -152,12 +146,10 @@
                 console.log("Raw JSON Data Received:", responseData);
                 if (responseData && responseData.error) {
                     console.error("Server-side error:", responseData.error);
-                    // EDITABLE TEXT: Error prefix if error comes from the server script
                     throw new Error("Server error: " + responseData.error);
                 }
                 if (!Array.isArray(responseData)) {
                     console.error("Data received is not an array:", responseData);
-                     // EDITABLE TEXT: Error message if data isn't the expected format
                     throw new Error("Invalid data format: Expected an array, but received an object.");
                 }
                 return responseData;
@@ -166,19 +158,13 @@
                 let displayError = `<span class="error-message">${error.message}</span>`;
                 let detailsAvailable = false;
                  if (error.message.startsWith("Invalid data format") && responseData) {
-                     displayError += `<br><br><strong>Raw Data Received (Object):</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`;
-                     detailsAvailable = true;
+                     displayError += `<br><br><strong>Raw Data Received (Object):</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`; detailsAvailable = true;
                  } else if (error.message.startsWith("Server error:") && responseData) {
-                     displayError += `<br><br><strong>Raw Error Object from Server:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`;
-                     detailsAvailable = true;
+                     displayError += `<br><br><strong>Raw Error Object from Server:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`; detailsAvailable = true;
                  } else if (!error.message.startsWith("Server error:") && responseData && typeof responseData === 'object') {
-                     displayError += `<br><br><strong>Potentially Relevant Data Received:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`;
-                     detailsAvailable = true;
+                     displayError += `<br><br><strong>Potentially Relevant Data Received:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`; detailsAvailable = true;
                  }
-                if (!detailsAvailable) {
-                    // EDITABLE TEXT: Generic advice if specific error details aren't available
-                     displayError += '<br><br><span style="font-size: 0.9em; font-style: italic;">Check browser console (F12) and Google Apps Script Executions logs for more details.</span>';
-                }
+                if (!detailsAvailable) { displayError += '<br><br><span style="font-size: 0.9em; font-style: italic;">Check browser console (F12) and Google Apps Script Executions logs for more details.</span>'; }
                 pollContainer.innerHTML = `<div class="error-message">${displayError}</div>`;
                 return null;
             }
@@ -192,13 +178,10 @@
             const data = await fetchData(sheetName);
 
             loadingIndicator.style.display = 'none';
-
             if (data === null) return;
-
             pollContainer.innerHTML = "";
 
              if (data.length === 0) {
-                 // EDITABLE TEXT: Message shown when no names are in the poll yet
                  pollContainer.innerHTML = "<p>No names added to the poll yet.</p>";
                  return;
              }
@@ -206,7 +189,7 @@
             data.sort((a, b) => {
                 const upvotesA = Number(a.Upvotes) || 0;
                 const upvotesB = Number(b.Upvotes) || 0;
-                return upvotesB - upvotesA;
+                return upvotesB - upvotesA; // Sort highest upvotes first
             });
 
             const votedNames = getVotedNames();
@@ -217,66 +200,52 @@
                     itemDiv.className = 'poll-item';
 
                     const upvotes = Number(item.Upvotes) || 0;
-                    const downvotes = Number(item.Downvotes) || 0;
+                    // Downvotes are no longer displayed, but might still be in data
+                    // const downvotes = Number(item.Downvotes) || 0;
                     const encodedName = encodeURIComponent(item.Name);
                     const displayName = item.Name;
 
                     const isAlreadyUpvoted = votedNames[displayName] === true;
                     const upvoteButtonDisabled = isAlreadyUpvoted ? 'disabled' : '';
-
-                    // EDITABLE TEXT: Text for the Upvote button (normal state)
                     const upvoteButtonText_NotVoted = '⬆️ Upvote';
-                    // EDITABLE TEXT: Text for the Upvote button (after voting)
                     const upvoteButtonText_Voted = '✅ Voted';
                     const upvoteButtonText = isAlreadyUpvoted ? upvoteButtonText_Voted : upvoteButtonText_NotVoted;
-
-                    // EDITABLE TEXT: Text for the Downvote button
-                    const downvoteButtonText = '⬇️ Downvote';
-
-                    // EDITABLE TEXT: Tooltip text when hovering over Upvote button (before voting)
                     const upvoteTooltip_NotVoted = `Upvote ${displayName}`;
-                    // EDITABLE TEXT: Tooltip text when hovering over Upvote button (after voting)
                     const upvoteTooltip_Voted = `You already upvoted ${displayName}`;
                     const upvoteTooltip = isAlreadyUpvoted ? upvoteTooltip_Voted : upvoteTooltip_NotVoted;
 
-                    // EDITABLE TEXT: Tooltip text when hovering over Downvote button
-                    const downvoteTooltip = `Downvote ${displayName}`;
-
-                    // EDITABLE TEXT: Format for displaying votes (e.g., "Up:", "Down:")
+                    // --- UPDATED innerHTML (removed Downvotes display and button) ---
                     itemDiv.innerHTML = `
                         <span class="item-text">
-                            <strong>${displayName}</strong> &nbsp; | &nbsp; Up: ${upvotes}, Down: ${downvotes}
+                            <strong>${displayName}</strong> &nbsp; | &nbsp; Upvotes: ${upvotes}
                         </span>
                         <div>
                             <button title="${upvoteTooltip}" onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'upvote', this)" ${upvoteButtonDisabled}>${upvoteButtonText}</button>
-                            <button title="${downvoteTooltip}" onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'downvote', this)">${downvoteButtonText}</button>
-                        </div>
+                            </div>
                     `;
+                    // --- END UPDATE ---
+
                     pollContainer.appendChild(itemDiv);
                 } else {
                     console.warn("Skipping invalid item:", item);
                 }
             });
-
             console.log("Poll display updated and sorted.");
         }
 
         // --- Adding and Updating Data ---
-
         async function addNewNameToPoll() {
             const name = nameInput.value.trim();
             addStatusSpan.textContent = "";
             addStatusSpan.style.color = "";
 
             if (!name) {
-                 // EDITABLE TEXT: Alert message if user tries to add a blank name
-                alert("Please enter an eligible bachelor");
-                return;
+                 alert("Please enter an eligible bachelor"); // Your customized text
+                 return;
             }
 
              const addButton = nameInput.nextElementSibling;
              addButton.disabled = true;
-             // EDITABLE TEXT: Status message while adding
              addStatusSpan.textContent = "Adding...";
              addStatusSpan.style.color = "orange";
 
@@ -289,27 +258,21 @@
                     console.error("Add Name Fetch Error:", response.statusText, errorText);
                     throw new Error(`HTTP error! status: ${response.status}`);
                  }
-
                 const result = await response.json();
                 console.log("Add Name Result:", result);
 
                 if (result.success) {
                     nameInput.value = "";
-                    // EDITABLE TEXT: Status message after successful add
-                    addStatusSpan.textContent = "Oh, that's a good add";
+                    addStatusSpan.textContent = "Oh, that's a good add"; // Your customized text
                     addStatusSpan.style.color = "green";
-
-                    markNameAsVoted(name); // Mark as voted locally
-
-                    await loadPoll(currentSheetName); // Reload poll
+                    markNameAsVoted(name);
+                    await loadPoll(currentSheetName);
                 } else {
-                     // EDITABLE TEXT: Prefix for error message if adding failed (server-side)
                      addStatusSpan.textContent = "Error: " + (result.message || result.error || "Could not add name.");
                      addStatusSpan.style.color = "red";
                 }
             } catch (error) {
                 console.error("Error in addNewNameToPoll:", error);
-                 // EDITABLE TEXT: Error message if adding failed (network/fetch error)
                 addStatusSpan.textContent = "Error adding name. Check console.";
                 addStatusSpan.style.color = "red";
             } finally {
@@ -322,14 +285,23 @@
             const name = decodeURIComponent(encodedName);
             console.log(`Updating ${voteType} for: ${name} in sheet: ${sheetName}`);
 
-            if (voteType === 'upvote') {
-                const votedNames = getVotedNames();
-                if (votedNames[name] === true) {
-                    // EDITABLE TEXT: Alert message if user tries to upvote again
-                    alert(`You have already upvoted "${name}".`);
-                    console.log(`Vote blocked for ${name}, already voted according to localStorage.`);
-                    return;
-                }
+            // --- Only proceed if it's an upvote ---
+            if (voteType !== 'upvote') {
+                 console.log(`Ignoring non-upvote action: ${voteType}`);
+                 // Optionally re-enable buttons if they got disabled prematurely
+                 const itemDiv = buttonElement.closest('.poll-item');
+                 const buttonsInItem = itemDiv ? itemDiv.querySelectorAll('button') : [];
+                 buttonsInItem.forEach(btn => btn.disabled = false);
+                 return; // Stop if it's not an upvote
+            }
+            // --- End Check ---
+
+            // Check localStorage before processing UPVOTE
+            const votedNames = getVotedNames();
+            if (votedNames[name] === true) {
+                alert(`You have already upvoted "${name}".`); // Your customized text
+                console.log(`Vote blocked for ${name}, already voted according to localStorage.`);
+                return;
             }
 
             const itemDiv = buttonElement.closest('.poll-item');
@@ -337,30 +309,26 @@
             buttonsInItem.forEach(btn => btn.disabled = true);
 
             try {
-                const response = await fetch(`${webAppUrl}?action=updateVote&sheetName=${sheetName}&name=${encodedName}&voteType=${voteType}`);
+                // We only call the server for 'upvote' now due to the check above
+                const response = await fetch(`${webAppUrl}?action=updateVote&sheetName=${sheetName}&name=${encodedName}&voteType=upvote`);
 
                 if (!response.ok) {
                      const errorText = await response.text();
                      console.error("Update Vote Fetch Error:", response.statusText, errorText);
                      throw new Error(`HTTP error! status: ${response.status}`);
                 }
-
                 const result = await response.json();
                 console.log("Update Vote Result:", result);
 
                 if (result.success) {
-                    if (voteType === 'upvote') {
-                        markNameAsVoted(name);
-                    }
-                    await loadPoll(sheetName);
+                    markNameAsVoted(name); // Mark voted after successful server update
+                    await loadPoll(sheetName); // Reload list
                 } else {
-                    // EDITABLE TEXT: Alert message if server reports an error updating vote
                     alert("Error updating vote: " + (result.error || "Unknown error"));
                     buttonsInItem.forEach(btn => btn.disabled = false);
                 }
             } catch (error) {
                 console.error("Error in updateVoteOnPoll:", error);
-                // EDITABLE TEXT: Alert message if fetch/network error occurs during vote update
                 alert("Failed to update vote. Check console for details.");
                  buttonsInItem.forEach(btn => btn.disabled = false);
             }
@@ -370,7 +338,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadPoll(currentSheetName);
         });
-
     </script>
 </body>
 </html>
