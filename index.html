@@ -1,10 +1,82 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>WashU Class of 2020's Most Eligible Bachelor & Bachelorette Poll</title>
+    <title>WashU Class of 2020's Most Eligible Bachelor & Bachelorette</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0; /* Remove default body margin */
+            padding: 0; /* Remove default body padding */
+            background-color: #f8f8f8; /* Optional: light background */
+        }
+
+        /* Centering Container with Max Width */
+        .container {
+            max-width: 700px; /* Max width of content area */
+            margin: 30px auto; /* Centers the container horizontally, adds top/bottom margin */
+            padding: 20px 30px; /* Padding inside the container */
+            background-color: #ffffff; /* White background for content area */
+            border-radius: 8px; /* Optional: rounded corners */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Optional: subtle shadow */
+            text-align: center; /* Center inline elements like text and buttons within */
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px; /* Space below heading */
+        }
+
+        p.description {
+            color: #555;
+            line-height: 1.6; /* Improve readability */
+            margin-bottom: 30px; /* Space below paragraph */
+        }
+
+        /* Button Container for spacing */
+        .button-group {
+            margin-top: 20px; /* Space above buttons */
+        }
+
+        /* Button Styling (copied from bachelor.html, applies to <a> tags with class) */
+        a.nav-button {
+            margin: 5px 10px; /* Spacing around buttons */
+            padding: 12px 25px; /* Make buttons larger */
+            cursor: pointer;
+            background-color: #eee;
+            border: 1px solid #aaa;
+            border-radius: 5px; /* Slightly more rounded */
+            text-decoration: none;
+            color: #333;
+            display: inline-block; /* Important for padding/margins */
+            font-size: 1.1em; /* Slightly larger text */
+            transition: background-color 0.2s ease; /* Smooth hover effect */
+        }
+
+        a.nav-button:hover {
+             background-color: #ddd;
+             color: #000;
+        }
+
+    </style>
 </head>
 <body>
-    <h1>Vote for your top choice</h1>
-    <a href="bachelor.html">Bachelor</a> | <a href="bachelorette.html">Bachelorette</a>
-</body>
+
+    <div class="container">
+
+        <h1>Upvote your former classmates or add a hidden gem</h1>
+
+        <p class="description">
+            Alright so I had this idea and thought it would be super fun. The original idea included that the top picks would actually go on a date together on Sunday for lunch or something, but
+            I doubt that will happen. If it did, I'd gladly foot the bill because that would truly be a beautiful moment.
+        </p>
+
+        <div class="button-group">
+            <a href="bachelor.html" class="nav-button">Vote for Bachelor</a>
+            <a href="bachelorette.html" class="nav-button">Vote for Bachelorette</a>
+            </div>
+
+    </div> </body>
 </html>
