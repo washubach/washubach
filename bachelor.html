@@ -23,17 +23,23 @@
             margin-right: auto;
             padding-right: 15px;
         }
-        button {
+        /* General Button Style */
+        button, a.nav-button {
             margin-left: 5px;
             padding: 5px 10px;
             cursor: pointer;
             background-color: #eee;
             border: 1px solid #aaa;
             border-radius: 3px;
+            text-decoration: none; /* For <a> tags styled as buttons */
+            color: #333; /* Set text color for <a> tags */
+            display: inline-block; /* Ensures padding/margin work correctly for <a> */
         }
-        button:hover:not(:disabled) {
+        /* Hover for actual buttons and styled links */
+        button:hover:not(:disabled), a.nav-button:hover {
              background-color: #ddd;
         }
+        /* Disabled state specifically for <button> elements */
         button:disabled {
             cursor: not-allowed;
             opacity: 0.6;
@@ -79,12 +85,28 @@
              font-style: italic;
              color: #555;
          }
+         /* --- NEW STYLES for Navigation Buttons --- */
+         .navigation-buttons {
+            text-align: right; /* Align buttons to the right */
+            margin-bottom: 15px; /* Space below buttons */
+         }
+         .nav-button {
+             /* Inherits general button styles above */
+             margin-left: 10px; /* Spacing between nav buttons */
+         }
+         /* --- END NEW STYLES --- */
+
     </style>
 </head>
 <body>
-    <h1>Who's the Most Eligible Bachelor from WashU Class of 2020?</h1>
+
+    <div class="navigation-buttons">
+        <a href="index.html" class="nav-button">Home</a>
+        <a href="bachelorette.html" class="nav-button">Bachelorette Poll</a>
+    </div>
+    <h1>Bachelor Poll</h1>
     <p style="font-size: 0.9em; color: #333;">Names are sorted by highest upvotes. You can only upvote each name once. Please add new entries as you see fit - that will also give them an upvote.</p>
-    <p style="font-size: 0.9em; color: #333;">Just saying... it would be really cool to have the most eligible bachelor and bachelorette go on a real date together...</p>
+
     <div id="poll-container">
         <p id="loading-indicator">Loading poll...</p>
     </div>
@@ -113,9 +135,7 @@
                 const storedVotes = localStorage.getItem(VOTE_STORAGE_KEY);
                 if (storedVotes) {
                     const parsedVotes = JSON.parse(storedVotes);
-                    if (typeof parsedVotes === 'object' && parsedVotes !== null && !Array.isArray(parsedVotes)) {
-                         return parsedVotes;
-                    }
+                    if (typeof parsedVotes === 'object' && parsedVotes !== null && !Array.isArray(parsedVotes)) { return parsedVotes; }
                 }
             } catch (error) { console.error("Error reading votes from localStorage:", error); }
             return {};
@@ -126,7 +146,7 @@
                 const currentVotes = getVotedNames();
                 currentVotes[name] = true;
                 localStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(currentVotes));
-                 console.log(`Stored vote for ${name} in localStorage.`);
+                console.log(`Stored vote for ${name} in localStorage.`);
             } catch (error) { console.error(`Error saving vote for ${name} to localStorage:`, error); }
         }
 
@@ -138,206 +158,103 @@
                 const response = await fetch(`${webAppUrl}?action=getData&sheetName=${sheetName}`);
                 console.log("Fetch Response Status:", response.status);
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error("Fetch Error:", response.statusText, errorText);
-                    throw new Error(`HTTP error! status: ${response.status}, message: ${response.statusText}`);
+                    const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status}, message: ${response.statusText}`);
                 }
                 responseData = await response.json();
                 console.log("Raw JSON Data Received:", responseData);
-                if (responseData && responseData.error) {
-                    console.error("Server-side error:", responseData.error);
-                    throw new Error("Server error: " + responseData.error);
-                }
-                if (!Array.isArray(responseData)) {
-                    console.error("Data received is not an array:", responseData);
-                    throw new Error("Invalid data format: Expected an array, but received an object.");
-                }
+                if (responseData && responseData.error) { throw new Error("Server error: " + responseData.error); }
+                if (!Array.isArray(responseData)) { throw new Error("Invalid data format: Expected an array, but received an object."); }
                 return responseData;
             } catch (error) {
                 console.error("Error in fetchData:", error);
-                let displayError = `<span class="error-message">${error.message}</span>`;
-                let detailsAvailable = false;
-                 if (error.message.startsWith("Invalid data format") && responseData) {
-                     displayError += `<br><br><strong>Raw Data Received (Object):</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`; detailsAvailable = true;
-                 } else if (error.message.startsWith("Server error:") && responseData) {
-                     displayError += `<br><br><strong>Raw Error Object from Server:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`; detailsAvailable = true;
-                 } else if (!error.message.startsWith("Server error:") && responseData && typeof responseData === 'object') {
-                     displayError += `<br><br><strong>Potentially Relevant Data Received:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`; detailsAvailable = true;
-                 }
+                let displayError = `<span class="error-message">${error.message}</span>`; let detailsAvailable = false;
+                if (error.message.startsWith("Invalid data format") && responseData) { displayError += `<br><br><strong>Raw Data Received (Object):</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`; detailsAvailable = true; }
+                else if (error.message.startsWith("Server error:") && responseData) { displayError += `<br><br><strong>Raw Error Object from Server:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`; detailsAvailable = true; }
+                else if (!error.message.startsWith("Server error:") && responseData && typeof responseData === 'object') { displayError += `<br><br><strong>Potentially Relevant Data Received:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`; detailsAvailable = true; }
                 if (!detailsAvailable) { displayError += '<br><br><span style="font-size: 0.9em; font-style: italic;">Check browser console (F12) and Google Apps Script Executions logs for more details.</span>'; }
-                pollContainer.innerHTML = `<div class="error-message">${displayError}</div>`;
-                return null;
+                pollContainer.innerHTML = `<div class="error-message">${displayError}</div>`; return null;
             }
         }
 
         async function loadPoll(sheetName) {
             loadingIndicator.style.display = 'block';
-            pollContainer.innerHTML = '';
-            pollContainer.appendChild(loadingIndicator);
-
+            pollContainer.innerHTML = ''; pollContainer.appendChild(loadingIndicator);
             const data = await fetchData(sheetName);
-
             loadingIndicator.style.display = 'none';
             if (data === null) return;
             pollContainer.innerHTML = "";
+            if (data.length === 0) { pollContainer.innerHTML = "<p>No names added to the poll yet.</p>"; return; }
 
-             if (data.length === 0) {
-                 pollContainer.innerHTML = "<p>No names added to the poll yet.</p>";
-                 return;
-             }
-
-            data.sort((a, b) => {
-                const upvotesA = Number(a.Upvotes) || 0;
-                const upvotesB = Number(b.Upvotes) || 0;
-                return upvotesB - upvotesA; // Sort highest upvotes first
-            });
-
+            data.sort((a, b) => (Number(b.Upvotes) || 0) - (Number(a.Upvotes) || 0)); // Sort highest first
             const votedNames = getVotedNames();
 
             data.forEach(item => {
                 if (item && typeof item === 'object' && 'Name' in item) {
-                    const itemDiv = document.createElement("div");
-                    itemDiv.className = 'poll-item';
-
+                    const itemDiv = document.createElement("div"); itemDiv.className = 'poll-item';
                     const upvotes = Number(item.Upvotes) || 0;
-                    // Downvotes are no longer displayed, but might still be in data
-                    // const downvotes = Number(item.Downvotes) || 0;
-                    const encodedName = encodeURIComponent(item.Name);
-                    const displayName = item.Name;
-
+                    const encodedName = encodeURIComponent(item.Name); const displayName = item.Name;
                     const isAlreadyUpvoted = votedNames[displayName] === true;
                     const upvoteButtonDisabled = isAlreadyUpvoted ? 'disabled' : '';
-                    const upvoteButtonText_NotVoted = '⬆️ Upvote';
-                    const upvoteButtonText_Voted = '✅ Voted';
-                    const upvoteButtonText = isAlreadyUpvoted ? upvoteButtonText_Voted : upvoteButtonText_NotVoted;
-                    const upvoteTooltip_NotVoted = `Upvote ${displayName}`;
-                    const upvoteTooltip_Voted = `You already upvoted ${displayName}`;
-                    const upvoteTooltip = isAlreadyUpvoted ? upvoteTooltip_Voted : upvoteTooltip_NotVoted;
+                    const upvoteButtonText = isAlreadyUpvoted ? '✅ Voted' : '⬆️ Upvote';
+                    const upvoteTooltip = isAlreadyUpvoted ? `You already upvoted ${displayName}` : `Upvote ${displayName}`;
 
-                    // --- UPDATED innerHTML (removed Downvotes display and button) ---
+                    // Display Upvotes only
                     itemDiv.innerHTML = `
                         <span class="item-text">
                             <strong>${displayName}</strong> &nbsp; | &nbsp; Upvotes: ${upvotes}
                         </span>
                         <div>
                             <button title="${upvoteTooltip}" onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'upvote', this)" ${upvoteButtonDisabled}>${upvoteButtonText}</button>
-                            </div>
-                    `;
-                    // --- END UPDATE ---
-
+                            </div>`;
                     pollContainer.appendChild(itemDiv);
-                } else {
-                    console.warn("Skipping invalid item:", item);
-                }
+                } else { console.warn("Skipping invalid item:", item); }
             });
             console.log("Poll display updated and sorted.");
         }
 
         // --- Adding and Updating Data ---
         async function addNewNameToPoll() {
-            const name = nameInput.value.trim();
-            addStatusSpan.textContent = "";
-            addStatusSpan.style.color = "";
-
-            if (!name) {
-                 alert("Please enter an eligible bachelor"); // Your customized text
-                 return;
-            }
-
-             const addButton = nameInput.nextElementSibling;
-             addButton.disabled = true;
-             addStatusSpan.textContent = "Adding...";
-             addStatusSpan.style.color = "orange";
-
+            const name = nameInput.value.trim(); addStatusSpan.textContent = ""; addStatusSpan.style.color = "";
+            if (!name) { alert("Please enter an eligible bachelor"); return; } // Your customized text
+            const addButton = nameInput.nextElementSibling; addButton.disabled = true;
+            addStatusSpan.textContent = "Adding..."; addStatusSpan.style.color = "orange";
             try {
                 const encodedName = encodeURIComponent(name);
                 const response = await fetch(`${webAppUrl}?action=addData&sheetName=${currentSheetName}&name=${encodedName}`);
-
-                 if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error("Add Name Fetch Error:", response.statusText, errorText);
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                 }
-                const result = await response.json();
-                console.log("Add Name Result:", result);
-
+                if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status}`); }
+                const result = await response.json(); console.log("Add Name Result:", result);
                 if (result.success) {
-                    nameInput.value = "";
-                    addStatusSpan.textContent = "Oh, that's a good add"; // Your customized text
-                    addStatusSpan.style.color = "green";
-                    markNameAsVoted(name);
-                    await loadPoll(currentSheetName);
-                } else {
-                     addStatusSpan.textContent = "Error: " + (result.message || result.error || "Could not add name.");
-                     addStatusSpan.style.color = "red";
-                }
+                    nameInput.value = ""; addStatusSpan.textContent = "Oh, that's a good add"; addStatusSpan.style.color = "green"; // Your customized text
+                    markNameAsVoted(name); await loadPoll(currentSheetName);
+                } else { addStatusSpan.textContent = "Error: " + (result.message || result.error || "Could not add name."); addStatusSpan.style.color = "red"; }
             } catch (error) {
-                console.error("Error in addNewNameToPoll:", error);
-                addStatusSpan.textContent = "Error adding name. Check console.";
-                addStatusSpan.style.color = "red";
-            } finally {
-                 addButton.disabled = false;
-                 setTimeout(() => { addStatusSpan.textContent = ""; addStatusSpan.style.color = ""; }, 4000);
-            }
+                console.error("Error in addNewNameToPoll:", error); addStatusSpan.textContent = "Error adding name. Check console."; addStatusSpan.style.color = "red";
+            } finally { addButton.disabled = false; setTimeout(() => { addStatusSpan.textContent = ""; addStatusSpan.style.color = ""; }, 4000); }
         }
 
         async function updateVoteOnPoll(sheetName, encodedName, voteType, buttonElement) {
             const name = decodeURIComponent(encodedName);
             console.log(`Updating ${voteType} for: ${name} in sheet: ${sheetName}`);
+            if (voteType !== 'upvote') { console.log(`Ignoring non-upvote action: ${voteType}`); return; } // Only process upvotes
 
-            // --- Only proceed if it's an upvote ---
-            if (voteType !== 'upvote') {
-                 console.log(`Ignoring non-upvote action: ${voteType}`);
-                 // Optionally re-enable buttons if they got disabled prematurely
-                 const itemDiv = buttonElement.closest('.poll-item');
-                 const buttonsInItem = itemDiv ? itemDiv.querySelectorAll('button') : [];
-                 buttonsInItem.forEach(btn => btn.disabled = false);
-                 return; // Stop if it's not an upvote
-            }
-            // --- End Check ---
-
-            // Check localStorage before processing UPVOTE
             const votedNames = getVotedNames();
-            if (votedNames[name] === true) {
-                alert(`You have already upvoted "${name}".`); // Your customized text
-                console.log(`Vote blocked for ${name}, already voted according to localStorage.`);
-                return;
-            }
+            if (votedNames[name] === true) { alert(`You have already upvoted "${name}".`); return; } // Your customized text
 
-            const itemDiv = buttonElement.closest('.poll-item');
-            const buttonsInItem = itemDiv ? itemDiv.querySelectorAll('button') : [];
+            const itemDiv = buttonElement.closest('.poll-item'); const buttonsInItem = itemDiv ? itemDiv.querySelectorAll('button') : [];
             buttonsInItem.forEach(btn => btn.disabled = true);
-
             try {
-                // We only call the server for 'upvote' now due to the check above
-                const response = await fetch(`${webAppUrl}?action=updateVote&sheetName=${sheetName}&name=${encodedName}&voteType=upvote`);
-
-                if (!response.ok) {
-                     const errorText = await response.text();
-                     console.error("Update Vote Fetch Error:", response.statusText, errorText);
-                     throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const result = await response.json();
-                console.log("Update Vote Result:", result);
-
-                if (result.success) {
-                    markNameAsVoted(name); // Mark voted after successful server update
-                    await loadPoll(sheetName); // Reload list
-                } else {
-                    alert("Error updating vote: " + (result.error || "Unknown error"));
-                    buttonsInItem.forEach(btn => btn.disabled = false);
-                }
+                const response = await fetch(`${webAppUrl}?action=updateVote&sheetName=${sheetName}&name=${encodedName}&voteType=upvote`); // Force upvote type
+                if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status}`); }
+                const result = await response.json(); console.log("Update Vote Result:", result);
+                if (result.success) { markNameAsVoted(name); await loadPoll(sheetName); }
+                else { alert("Error updating vote: " + (result.error || "Unknown error")); buttonsInItem.forEach(btn => btn.disabled = false); }
             } catch (error) {
-                console.error("Error in updateVoteOnPoll:", error);
-                alert("Failed to update vote. Check console for details.");
-                 buttonsInItem.forEach(btn => btn.disabled = false);
+                console.error("Error in updateVoteOnPoll:", error); alert("Failed to update vote. Check console for details."); buttonsInItem.forEach(btn => btn.disabled = false);
             }
         }
 
         // --- Initial Load ---
-        document.addEventListener('DOMContentLoaded', () => {
-            loadPoll(currentSheetName);
-        });
+        document.addEventListener('DOMContentLoaded', () => { loadPoll(currentSheetName); });
     </script>
 </body>
 </html>
