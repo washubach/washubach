@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bachelor Poll</title>
+    <title>Class of 2020's Most Eligible Bachelor Poll</title>
     <style>
         /* (Keep existing styles) */
         body {
@@ -83,7 +83,7 @@
 </head>
 <body>
     <h1>Bachelor Poll</h1>
-    <p style="font-size: 0.9em; color: #333;">Names are sorted by highest upvotes. You can upvote each name only once per browser (adding a name counts as your upvote).</p>
+    <p style="font-size: 0.9em; color: #333;">Names are sorted by highest upvotes. You can only upvote each name once. Please add new entries as you see fit - that will also give them an upvote.</p>
 
     <div id="poll-container">
         <p id="loading-indicator">Loading poll...</p>
@@ -92,13 +92,12 @@
     <div class="add-section">
         <input type="text" id="newName" placeholder="Enter a new name">
         <button onclick="addNewNameToPoll()">Add Name</button>
-         <span id="add-status" class="status-message"></span>
-    </div>
+         <span id="add-status" class="status-message"></span> </div>
 
     <script>
         // --- Configuration ---
-        // Use your latest deployment URL here
-        const webAppUrl = "https://script.google.com/macros/s/AKfycbwN2FDsNXMNRM8FL-nNWhjW9JtKi0odCGHWlCeGM9j0tczoUAXenwSAnncSu3_nDSs/exec";
+        // UPDATED with your newest deployment URL
+        const webAppUrl = "https://script.google.com/macros/s/AKfycbyq_WFXfVJ-q-mJHlPpI3xRTO97Vh9eZEHhMFF2Dywc1cmkOWxF9n1cufdV06EYcbZG/exec";
         const currentSheetName = "Bachelor";
         const VOTE_STORAGE_KEY = 'bachelorPollVotes'; // Key for localStorage
 
@@ -109,11 +108,7 @@
         const loadingIndicator = document.getElementById("loading-indicator");
 
         // --- Local Storage Helpers ---
-
-        /**
-         * Reads voted names from localStorage.
-         * @returns {object} An object where keys are names that have been upvoted, e.g., {'Name1': true, 'Name2': true}. Returns {} if none found or error.
-         */
+        // (No user-facing text here)
         function getVotedNames() {
             try {
                 const storedVotes = localStorage.getItem(VOTE_STORAGE_KEY);
@@ -128,11 +123,6 @@
             }
             return {};
         }
-
-        /**
-         * Marks a name as having been upvoted in localStorage.
-         * @param {string} name - The name to mark as voted.
-         */
         function markNameAsVoted(name) {
             if (!name) return;
             try {
@@ -145,11 +135,9 @@
             }
         }
 
-
         // --- Fetching and Displaying Data ---
-
         async function fetchData(sheetName) {
-            // (This function remains the same - handles fetch and basic error checking)
+            // (This function remains the same - error messages handled below)
             console.log("Fetching data from:", `${webAppUrl}?action=getData&sheetName=${sheetName}`);
             let responseData = null;
             try {
@@ -164,10 +152,12 @@
                 console.log("Raw JSON Data Received:", responseData);
                 if (responseData && responseData.error) {
                     console.error("Server-side error:", responseData.error);
+                    // EDITABLE TEXT: Error prefix if error comes from the server script
                     throw new Error("Server error: " + responseData.error);
                 }
                 if (!Array.isArray(responseData)) {
                     console.error("Data received is not an array:", responseData);
+                     // EDITABLE TEXT: Error message if data isn't the expected format
                     throw new Error("Invalid data format: Expected an array, but received an object.");
                 }
                 return responseData;
@@ -186,6 +176,7 @@
                      detailsAvailable = true;
                  }
                 if (!detailsAvailable) {
+                    // EDITABLE TEXT: Generic advice if specific error details aren't available
                      displayError += '<br><br><span style="font-size: 0.9em; font-style: italic;">Check browser console (F12) and Google Apps Script Executions logs for more details.</span>';
                 }
                 pollContainer.innerHTML = `<div class="error-message">${displayError}</div>`;
@@ -207,18 +198,18 @@
             pollContainer.innerHTML = "";
 
              if (data.length === 0) {
+                 // EDITABLE TEXT: Message shown when no names are in the poll yet
                  pollContainer.innerHTML = "<p>No names added to the poll yet.</p>";
                  return;
              }
 
-            // Sort by Upvotes (descending)
             data.sort((a, b) => {
                 const upvotesA = Number(a.Upvotes) || 0;
                 const upvotesB = Number(b.Upvotes) || 0;
                 return upvotesB - upvotesA;
             });
 
-            const votedNames = getVotedNames(); // Get votes from localStorage
+            const votedNames = getVotedNames();
 
             data.forEach(item => {
                 if (item && typeof item === 'object' && 'Name' in item) {
@@ -232,15 +223,33 @@
 
                     const isAlreadyUpvoted = votedNames[displayName] === true;
                     const upvoteButtonDisabled = isAlreadyUpvoted ? 'disabled' : '';
-                    const upvoteButtonText = isAlreadyUpvoted ? '✅ Voted' : '⬆️ Upvote';
 
+                    // EDITABLE TEXT: Text for the Upvote button (normal state)
+                    const upvoteButtonText_NotVoted = '⬆️ Upvote';
+                    // EDITABLE TEXT: Text for the Upvote button (after voting)
+                    const upvoteButtonText_Voted = '✅ Voted';
+                    const upvoteButtonText = isAlreadyUpvoted ? upvoteButtonText_Voted : upvoteButtonText_NotVoted;
+
+                    // EDITABLE TEXT: Text for the Downvote button
+                    const downvoteButtonText = '⬇️ Downvote';
+
+                    // EDITABLE TEXT: Tooltip text when hovering over Upvote button (before voting)
+                    const upvoteTooltip_NotVoted = `Upvote ${displayName}`;
+                    // EDITABLE TEXT: Tooltip text when hovering over Upvote button (after voting)
+                    const upvoteTooltip_Voted = `You already upvoted ${displayName}`;
+                    const upvoteTooltip = isAlreadyUpvoted ? upvoteTooltip_Voted : upvoteTooltip_NotVoted;
+
+                    // EDITABLE TEXT: Tooltip text when hovering over Downvote button
+                    const downvoteTooltip = `Downvote ${displayName}`;
+
+                    // EDITABLE TEXT: Format for displaying votes (e.g., "Up:", "Down:")
                     itemDiv.innerHTML = `
                         <span class="item-text">
                             <strong>${displayName}</strong> &nbsp; | &nbsp; Up: ${upvotes}, Down: ${downvotes}
                         </span>
                         <div>
-                            <button title="${isAlreadyUpvoted ? 'You already upvoted ' + displayName : 'Upvote ' + displayName}" onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'upvote', this)" ${upvoteButtonDisabled}>${upvoteButtonText}</button>
-                            <button title="Downvote ${displayName}" onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'downvote', this)">⬇️ Downvote</button>
+                            <button title="${upvoteTooltip}" onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'upvote', this)" ${upvoteButtonDisabled}>${upvoteButtonText}</button>
+                            <button title="${downvoteTooltip}" onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'downvote', this)">${downvoteButtonText}</button>
                         </div>
                     `;
                     pollContainer.appendChild(itemDiv);
@@ -255,17 +264,19 @@
         // --- Adding and Updating Data ---
 
         async function addNewNameToPoll() {
-            const name = nameInput.value.trim(); // Keep original variable name
+            const name = nameInput.value.trim();
             addStatusSpan.textContent = "";
             addStatusSpan.style.color = "";
 
             if (!name) {
-                alert("Please enter a name.");
+                 // EDITABLE TEXT: Alert message if user tries to add a blank name
+                alert("Please enter an eligible bachelor");
                 return;
             }
 
              const addButton = nameInput.nextElementSibling;
              addButton.disabled = true;
+             // EDITABLE TEXT: Status message while adding
              addStatusSpan.textContent = "Adding...";
              addStatusSpan.style.color = "orange";
 
@@ -284,20 +295,21 @@
 
                 if (result.success) {
                     nameInput.value = "";
-                    addStatusSpan.textContent = "Name added!";
+                    // EDITABLE TEXT: Status message after successful add
+                    addStatusSpan.textContent = "Oh, that's a good add";
                     addStatusSpan.style.color = "green";
 
-                    // --- CHANGE HERE: Mark the added name as voted in localStorage ---
-                    markNameAsVoted(name); // Use the original non-encoded name
-                    // --- END CHANGE ---
+                    markNameAsVoted(name); // Mark as voted locally
 
                     await loadPoll(currentSheetName); // Reload poll
                 } else {
+                     // EDITABLE TEXT: Prefix for error message if adding failed (server-side)
                      addStatusSpan.textContent = "Error: " + (result.message || result.error || "Could not add name.");
                      addStatusSpan.style.color = "red";
                 }
             } catch (error) {
                 console.error("Error in addNewNameToPoll:", error);
+                 // EDITABLE TEXT: Error message if adding failed (network/fetch error)
                 addStatusSpan.textContent = "Error adding name. Check console.";
                 addStatusSpan.style.color = "red";
             } finally {
@@ -306,18 +318,17 @@
             }
         }
 
-
         async function updateVoteOnPoll(sheetName, encodedName, voteType, buttonElement) {
             const name = decodeURIComponent(encodedName);
             console.log(`Updating ${voteType} for: ${name} in sheet: ${sheetName}`);
 
-            // Check localStorage before processing UPVOTE
             if (voteType === 'upvote') {
                 const votedNames = getVotedNames();
                 if (votedNames[name] === true) {
+                    // EDITABLE TEXT: Alert message if user tries to upvote again
                     alert(`You have already upvoted "${name}".`);
                     console.log(`Vote blocked for ${name}, already voted according to localStorage.`);
-                    return; // Stop processing
+                    return;
                 }
             }
 
@@ -338,21 +349,20 @@
                 console.log("Update Vote Result:", result);
 
                 if (result.success) {
-                    // Mark as voted in localStorage *after* successful UPVOTE
                     if (voteType === 'upvote') {
                         markNameAsVoted(name);
                     }
-
-                    await loadPoll(sheetName); // Reload poll
+                    await loadPoll(sheetName);
                 } else {
+                    // EDITABLE TEXT: Alert message if server reports an error updating vote
                     alert("Error updating vote: " + (result.error || "Unknown error"));
-                     // Re-enable buttons if server reported error for this specific vote
-                     buttonsInItem.forEach(btn => btn.disabled = false);
+                    buttonsInItem.forEach(btn => btn.disabled = false);
                 }
             } catch (error) {
                 console.error("Error in updateVoteOnPoll:", error);
+                // EDITABLE TEXT: Alert message if fetch/network error occurs during vote update
                 alert("Failed to update vote. Check console for details.");
-                 buttonsInItem.forEach(btn => btn.disabled = false); // Re-enable on unexpected error
+                 buttonsInItem.forEach(btn => btn.disabled = false);
             }
         }
 
