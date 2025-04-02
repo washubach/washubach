@@ -2,20 +2,23 @@
 <html>
 <head>
     <title>Bachelor Poll</title>
-    <style> /* Optional: Basic styling for clarity */
+    <style> /* Basic styling for layout */
         body {
             font-family: sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: auto;
         }
-        #poll-container div {
+        #poll-container div.poll-item {
             margin-bottom: 10px;
             padding: 8px;
-            border: 1px solid #eee;
+            border: 1px solid #ccc; /* Changed border color */
             border-radius: 4px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        #poll-container div span {
+        #poll-container div.poll-item span.item-text {
             margin-right: auto; /* Pushes buttons to the right */
             padding-right: 15px; /* Spacing between text and buttons */
         }
@@ -23,58 +26,85 @@
             margin-left: 5px;
             padding: 5px 10px;
             cursor: pointer;
+            background-color: #eee; /* Light grey background */
+            border: 1px solid #aaa;
+            border-radius: 3px;
+        }
+        button:hover {
+             background-color: #ddd;
         }
         input[type="text"] {
             padding: 6px;
             margin-right: 5px;
+            border: 1px solid #aaa;
+            border-radius: 3px;
+        }
+        .add-section {
+             margin-top: 20px; /* Space above add section */
+             padding-top: 15px;
+             border-top: 1px solid #eee;
         }
         .status-message {
             margin-left: 10px;
             font-style: italic;
         }
         .error-message {
-            color: red;
-            font-weight: bold;
-        }
-        .error-details {
-            color: #e74c3c; /* Softer red for details */
-            background-color: #fbeaea; /* Light pink background */
-            border: 1px solid #e74c3c;
+            color: #D8000C; /* Error red */
+            background-color: #FFD2D2; /* Light red background */
+            border: 1px solid #D8000C;
             padding: 10px;
-            margin-top: 5px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+         .error-details {
+            color: #A00000;
+            background-color: #FDD;
+            border: 1px solid #A00000;
+            padding: 10px;
+            margin-top: 10px;
             white-space: pre-wrap; /* Allows wrapping of long lines */
             word-break: break-all; /* Breaks long strings */
             font-family: monospace;
-        }
-        hr {
-            margin: 20px 0;
-        }
+            font-size: 0.9em;
+         }
+         hr {
+             display: none; /* Hide default hr, using styled border instead */
+         }
+         #loading-indicator {
+             font-style: italic;
+             color: #555;
+         }
     </style>
 </head>
 <body>
     <h1>Bachelor Poll</h1>
 
-    <div id="poll-container">Loading poll...</div>
+    <div id="poll-container">
+        <p id="loading-indicator">Loading poll...</p>
+    </div>
 
-    <hr> <div>
+    <div class="add-section">
         <input type="text" id="newName" placeholder="Enter a new name">
         <button onclick="addNewNameToPoll()">Add Name</button>
          <span id="add-status" class="status-message"></span> </div>
 
-    <hr> <div>
-        </div>
-
     <script>
-        // !!! IMPORTANT: Replace this with your actual Google Apps Script Web App URL !!!
-        const webAppUrl = "https://script.google.com/macros/s/AKfycbz6ANZkWCnjgLfbECPnBG_gBJuGOQOFdUXUokGH-BLPL5bT67A_g3_cjiVmCdzhl9JW/exec";
+        // --- Configuration ---
+        // UPDATED with your new deployment URL
+        const webAppUrl = "https://script.google.com/macros/s/AKfycbwN2FDsNXMNRM8FL-nNWhjW9JtKi0odCGHWlCeGM9j0tczoUAXenwSAnncSu3_nDSs/exec";
+        const currentSheetName = "Bachelor"; // The sheet name for this poll
 
-        const currentSheetName = "Bachelor"; // Define the sheet name for this page
+        // --- DOM Elements ---
+        const pollContainer = document.getElementById("poll-container");
+        const nameInput = document.getElementById("newName");
+        const addStatusSpan = document.getElementById("add-status");
+        const loadingIndicator = document.getElementById("loading-indicator");
 
         // --- Fetching and Displaying Data ---
 
         async function fetchData(sheetName) {
             console.log("Fetching data from:", `${webAppUrl}?action=getData&sheetName=${sheetName}`);
-            let responseData = null; // Variable to hold data outside try block if needed
+            let responseData = null;
 
             try {
                 const response = await fetch(`${webAppUrl}?action=getData&sheetName=${sheetName}`);
@@ -86,69 +116,66 @@
                     throw new Error(`HTTP error! status: ${response.status}, message: ${response.statusText}`);
                 }
 
-                responseData = await response.json(); // Assign to outer variable
+                responseData = await response.json();
                 console.log("Raw JSON Data Received:", responseData);
 
-                // Check if the Google Apps Script returned an error object
                 if (responseData && responseData.error) {
                     console.error("Server-side error:", responseData.error);
-                    // Throw error with server message to be caught below
                     throw new Error("Server error: " + responseData.error);
                 }
 
-                // Check if the data received is actually an array before returning
                 if (!Array.isArray(responseData)) {
                     console.error("Data received is not an array:", responseData);
-                    // Throw specific error for non-array data
-                     throw new Error("Invalid data format: Expected an array, but received an object.");
+                    throw new Error("Invalid data format: Expected an array, but received an object.");
                 }
 
-
-                return responseData; // Return the actual data array
+                return responseData;
 
             } catch (error) {
                 console.error("Error in fetchData:", error);
-                const container = document.getElementById("poll-container");
 
-                // Construct the error message for the user
+                // Construct error display
                 let displayError = `<span class="error-message">${error.message}</span>`;
+                let detailsAvailable = false;
 
-                // Check the type of error and add details if possible
-                if (error.message.startsWith("Invalid data format") && responseData) {
-                    // If we got an object when expecting an array
+                 if (error.message.startsWith("Invalid data format") && responseData) {
                      displayError += `<br><br><strong>Raw Data Received (Object):</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`;
-                } else if (error.message.startsWith("Server error:") && responseData) {
-                     // If the server explicitly sent back an error object
+                     detailsAvailable = true;
+                 } else if (error.message.startsWith("Server error:") && responseData) {
                      displayError += `<br><br><strong>Raw Error Object from Server:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`;
-                } else if (!error.message.startsWith("Server error:") && responseData && typeof responseData === 'object') {
-                    // Catch other cases where we might have the invalid object
+                     detailsAvailable = true;
+                 } else if (!error.message.startsWith("Server error:") && responseData && typeof responseData === 'object') {
                      displayError += `<br><br><strong>Potentially Relevant Data Received:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`;
-                } else {
-                    // Generic fallback if no specific data available
-                    displayError += '<br><br><span style="font-style: italic;">Check browser console (F12) and Google Apps Script Executions logs for more details.</span>';
+                     detailsAvailable = true;
+                 }
+
+                if (!detailsAvailable) {
+                     displayError += '<br><br><span style="font-size: 0.9em; font-style: italic;">Check browser console (F12) and Google Apps Script Executions logs for more details.</span>';
                 }
 
-                // Display error message and details in the poll container
-                container.innerHTML = `<div class="error-message">${displayError}</div>`;
+                // Display error in the poll container
+                pollContainer.innerHTML = `<div class="error-message">${displayError}</div>`;
                 return null; // Indicate failure
             }
         }
 
-
         async function loadPoll(sheetName) {
-            const container = document.getElementById("poll-container");
-            container.innerHTML = "Loading..."; // Show loading indicator
+            loadingIndicator.style.display = 'block'; // Show loading
+            pollContainer.innerHTML = ''; // Clear previous items (but keep indicator parent)
+            pollContainer.appendChild(loadingIndicator);
+
 
             const data = await fetchData(sheetName);
 
+            loadingIndicator.style.display = 'none'; // Hide loading
+
             if (data === null) return; // Stop if fetchData failed (error already displayed)
 
-            // Clear container *after* successful fetch and validation in fetchData
-            container.innerHTML = "";
+            // Clear container completely *after* successful fetch
+            pollContainer.innerHTML = "";
 
-             // We already validated it's an array in fetchData
              if (data.length === 0) {
-                 container.innerHTML = "<p>No names added to the poll yet.</p>";
+                 pollContainer.innerHTML = "<p>No names added to the poll yet.</p>";
                  return;
              }
 
@@ -156,33 +183,26 @@
             data.sort((a, b) => (a.Name || "").localeCompare(b.Name || ""));
 
             data.forEach(item => {
-                 // Validate item structure before using it
                 if (item && typeof item === 'object' && 'Name' in item) {
-                    console.log("Processing Item:", item); // Debug each valid item
                     const itemDiv = document.createElement("div");
+                    itemDiv.className = 'poll-item'; // Add class for styling
 
-                    // Ensure votes are numbers, default to 0 if missing or not a number
                     const upvotes = Number(item.Upvotes) || 0;
                     const downvotes = Number(item.Downvotes) || 0;
 
-                     // Use encodeURIComponent for names that might have special characters when sending data
                     const encodedName = encodeURIComponent(item.Name);
-                     // Display the decoded name
-                     const displayName = item.Name;
+                    const displayName = item.Name; // Display decoded name
 
-
-                    // Use a span for the text content to allow flexbox justification
                     itemDiv.innerHTML = `
-                        <span>
-                            <strong>${displayName}</strong>:
-                            Upvotes: ${upvotes},
-                            Downvotes: ${downvotes}
+                        <span class="item-text">
+                            <strong>${displayName}</strong> &nbsp; | &nbsp; Up: ${upvotes}, Down: ${downvotes}
                         </span>
-                        <div> <button onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'upvote')">Upvote</button>
-                            <button onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'downvote')">Downvote</button>
+                        <div>
+                            <button title="Upvote ${displayName}" onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'upvote', this)">⬆️ Upvote</button>
+                            <button title="Downvote ${displayName}" onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'downvote', this)">⬇️ Downvote</button>
                         </div>
                     `;
-                    container.appendChild(itemDiv);
+                    pollContainer.appendChild(itemDiv);
                 } else {
                     console.warn("Skipping invalid item:", item);
                 }
@@ -194,29 +214,21 @@
         // --- Adding and Updating Data ---
 
         async function addNewNameToPoll() {
-            const nameInput = document.getElementById("newName");
-            const statusSpan = document.getElementById("add-status");
-            const name = nameInput.value.trim(); // Trim whitespace
-
-             statusSpan.textContent = ""; // Clear previous status
-             statusSpan.style.color = ""; // Reset color
-
+            const name = nameInput.value.trim();
+            addStatusSpan.textContent = "";
+            addStatusSpan.style.color = "";
 
             if (!name) {
                 alert("Please enter a name.");
                 return;
             }
 
-             // Disable button temporarily
-             const addButton = nameInput.nextElementSibling; // Assumes button is immediately after input
+             const addButton = nameInput.nextElementSibling;
              addButton.disabled = true;
-             statusSpan.textContent = "Adding...";
-             statusSpan.style.color = "orange";
-
+             addStatusSpan.textContent = "Adding...";
+             addStatusSpan.style.color = "orange";
 
             try {
-                 console.log("Adding name:", name, "to sheet:", currentSheetName);
-                 // Encode the name for the URL query string
                 const encodedName = encodeURIComponent(name);
                 const response = await fetch(`${webAppUrl}?action=addData&sheetName=${currentSheetName}&name=${encodedName}`);
 
@@ -230,36 +242,33 @@
                 console.log("Add Name Result:", result);
 
                 if (result.success) {
-                    nameInput.value = ""; // Clear input field
-                    statusSpan.textContent = "Name added!";
-                    statusSpan.style.color = "green";
-                    await loadPoll(currentSheetName); // Reload the poll to show the new name
+                    nameInput.value = "";
+                    addStatusSpan.textContent = "Name added!";
+                    addStatusSpan.style.color = "green";
+                    await loadPoll(currentSheetName); // Reload poll
                 } else {
-                     // Handle specific errors like 'name already exists' or other server errors
-                     statusSpan.textContent = "Error: " + (result.message || result.error || "Could not add name.");
-                     statusSpan.style.color = "red";
+                     addStatusSpan.textContent = "Error: " + (result.message || result.error || "Could not add name.");
+                     addStatusSpan.style.color = "red";
                 }
             } catch (error) {
                 console.error("Error in addNewNameToPoll:", error);
-                statusSpan.textContent = "Error adding name. Check console.";
-                statusSpan.style.color = "red";
+                addStatusSpan.textContent = "Error adding name. Check console.";
+                addStatusSpan.style.color = "red";
             } finally {
-                 // Re-enable button
                  addButton.disabled = false;
-                 // Optionally clear status message after a few seconds
-                 setTimeout(() => { statusSpan.textContent = ""; statusSpan.style.color = ""; }, 4000);
+                 setTimeout(() => { addStatusSpan.textContent = ""; addStatusSpan.style.color = ""; }, 4000);
             }
         }
 
-        async function updateVoteOnPoll(sheetName, encodedName, voteType) {
-            // Decode name for logging if needed, but keep it encoded for the URL
+        // Added 'buttonElement' parameter to disable the correct buttons
+        async function updateVoteOnPoll(sheetName, encodedName, voteType, buttonElement) {
             const name = decodeURIComponent(encodedName);
-             console.log(`Updating ${voteType} for: ${name} in sheet: ${sheetName}`);
+            console.log(`Updating ${voteType} for: ${name} in sheet: ${sheetName}`);
 
-            // Optional: Add visual feedback (e.g., disable buttons briefly)
-             const buttons = event.target.parentElement.querySelectorAll('button');
-             buttons.forEach(btn => btn.disabled = true); // Disable buttons on the specific item
-
+            // Disable buttons within the specific item's div
+             const itemDiv = buttonElement.closest('.poll-item');
+             const buttonsInItem = itemDiv ? itemDiv.querySelectorAll('button') : [];
+             buttonsInItem.forEach(btn => btn.disabled = true);
 
             try {
                 const response = await fetch(`${webAppUrl}?action=updateVote&sheetName=${sheetName}&name=${encodedName}&voteType=${voteType}`);
@@ -271,24 +280,24 @@
                 }
 
                 const result = await response.json();
-                 console.log("Update Vote Result:", result);
+                console.log("Update Vote Result:", result);
 
                 if (result.success) {
-                    await loadPoll(sheetName); // Reload the poll to show updated counts
-                    // Note: Buttons will be re-enabled when the poll reloads.
+                    // Instead of full reload, could potentially update just this item's text
+                    // For simplicity now, just reload the whole poll
+                    await loadPoll(sheetName);
                 } else {
                     alert("Error updating vote: " + (result.error || "Unknown error"));
-                     buttons.forEach(btn => btn.disabled = false); // Re-enable buttons on error
+                     buttonsInItem.forEach(btn => btn.disabled = false); // Re-enable on error
                 }
             } catch (error) {
                 console.error("Error in updateVoteOnPoll:", error);
                 alert("Failed to update vote. Check console for details.");
-                 buttons.forEach(btn => btn.disabled = false); // Re-enable buttons on error
+                 buttonsInItem.forEach(btn => btn.disabled = false); // Re-enable on error
             }
         }
 
         // --- Initial Load ---
-        // Load the poll for the specific sheet when the page loads
         document.addEventListener('DOMContentLoaded', () => {
             loadPoll(currentSheetName);
         });
