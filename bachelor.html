@@ -3,7 +3,7 @@
 <head>
     <title>Bachelor Poll</title>
     <style>
-        /* (Keep existing styles from previous version) */
+        /* (Keep existing styles) */
         body {
             font-family: sans-serif;
             padding: 20px;
@@ -31,10 +31,10 @@
             border: 1px solid #aaa;
             border-radius: 3px;
         }
-        button:hover:not(:disabled) { /* Don't change hover style if disabled */
+        button:hover:not(:disabled) {
              background-color: #ddd;
         }
-        button:disabled { /* Style for disabled buttons */
+        button:disabled {
             cursor: not-allowed;
             opacity: 0.6;
         }
@@ -53,7 +53,7 @@
             margin-left: 10px;
             font-style: italic;
         }
-        .error-message { /* Error messages from fetch etc */
+        .error-message {
             color: #D8000C;
             background-color: #FFD2D2;
             border: 1px solid #D8000C;
@@ -83,7 +83,7 @@
 </head>
 <body>
     <h1>Bachelor Poll</h1>
-    <p style="font-size: 0.9em; color: #333;">Names are sorted by highest upvotes. You can upvote each name only once per browser.</p>
+    <p style="font-size: 0.9em; color: #333;">Names are sorted by highest upvotes. You can upvote each name only once per browser (adding a name counts as your upvote).</p>
 
     <div id="poll-container">
         <p id="loading-indicator">Loading poll...</p>
@@ -97,7 +97,8 @@
 
     <script>
         // --- Configuration ---
-        const webAppUrl = "https://script.google.com/macros/s/AKfycbwN2FDsNXMNRM8FL-nNWhjW9JtKi0odCGHWlCeGM9j0tczoUAXenwSAnncSu3_nDSs/exec"; // Your latest deployment URL
+        // Use your latest deployment URL here
+        const webAppUrl = "https://script.google.com/macros/s/AKfycbwN2FDsNXMNRM8FL-nNWhjW9JtKi0odCGHWlCeGM9j0tczoUAXenwSAnncSu3_nDSs/exec";
         const currentSheetName = "Bachelor";
         const VOTE_STORAGE_KEY = 'bachelorPollVotes'; // Key for localStorage
 
@@ -118,16 +119,14 @@
                 const storedVotes = localStorage.getItem(VOTE_STORAGE_KEY);
                 if (storedVotes) {
                     const parsedVotes = JSON.parse(storedVotes);
-                    // Basic validation: ensure it's an object
                     if (typeof parsedVotes === 'object' && parsedVotes !== null && !Array.isArray(parsedVotes)) {
                          return parsedVotes;
                     }
                 }
             } catch (error) {
                 console.error("Error reading votes from localStorage:", error);
-                // Optionally clear corrupted data: localStorage.removeItem(VOTE_STORAGE_KEY);
             }
-            return {}; // Return empty object if nothing stored, null, or parsing failed
+            return {};
         }
 
         /**
@@ -138,7 +137,7 @@
             if (!name) return;
             try {
                 const currentVotes = getVotedNames();
-                currentVotes[name] = true; // Add or update the name entry
+                currentVotes[name] = true;
                 localStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(currentVotes));
                  console.log(`Stored vote for ${name} in localStorage.`);
             } catch (error) {
@@ -150,35 +149,28 @@
         // --- Fetching and Displaying Data ---
 
         async function fetchData(sheetName) {
-            // (This function remains the same as the previous version - handles fetch and basic error checking)
+            // (This function remains the same - handles fetch and basic error checking)
             console.log("Fetching data from:", `${webAppUrl}?action=getData&sheetName=${sheetName}`);
             let responseData = null;
-
             try {
                 const response = await fetch(`${webAppUrl}?action=getData&sheetName=${sheetName}`);
                 console.log("Fetch Response Status:", response.status);
-
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error("Fetch Error:", response.statusText, errorText);
                     throw new Error(`HTTP error! status: ${response.status}, message: ${response.statusText}`);
                 }
-
                 responseData = await response.json();
                 console.log("Raw JSON Data Received:", responseData);
-
                 if (responseData && responseData.error) {
                     console.error("Server-side error:", responseData.error);
                     throw new Error("Server error: " + responseData.error);
                 }
-
                 if (!Array.isArray(responseData)) {
                     console.error("Data received is not an array:", responseData);
                     throw new Error("Invalid data format: Expected an array, but received an object.");
                 }
-
                 return responseData;
-
             } catch (error) {
                 console.error("Error in fetchData:", error);
                 let displayError = `<span class="error-message">${error.message}</span>`;
@@ -212,22 +204,21 @@
 
             if (data === null) return;
 
-            pollContainer.innerHTML = ""; // Clear container after successful fetch
+            pollContainer.innerHTML = "";
 
-            if (data.length === 0) {
+             if (data.length === 0) {
                  pollContainer.innerHTML = "<p>No names added to the poll yet.</p>";
                  return;
              }
 
-            // --- NEW: Sort by Upvotes (descending) ---
+            // Sort by Upvotes (descending)
             data.sort((a, b) => {
                 const upvotesA = Number(a.Upvotes) || 0;
                 const upvotesB = Number(b.Upvotes) || 0;
-                return upvotesB - upvotesA; // Sorts highest first
+                return upvotesB - upvotesA;
             });
-            // --- END NEW ---
 
-            const votedNames = getVotedNames(); // Get votes from localStorage ONCE per load
+            const votedNames = getVotedNames(); // Get votes from localStorage
 
             data.forEach(item => {
                 if (item && typeof item === 'object' && 'Name' in item) {
@@ -236,15 +227,12 @@
 
                     const upvotes = Number(item.Upvotes) || 0;
                     const downvotes = Number(item.Downvotes) || 0;
-
                     const encodedName = encodeURIComponent(item.Name);
                     const displayName = item.Name;
 
-                    // --- NEW: Check if already upvoted ---
                     const isAlreadyUpvoted = votedNames[displayName] === true;
                     const upvoteButtonDisabled = isAlreadyUpvoted ? 'disabled' : '';
                     const upvoteButtonText = isAlreadyUpvoted ? '✅ Voted' : '⬆️ Upvote';
-                    // --- END NEW ---
 
                     itemDiv.innerHTML = `
                         <span class="item-text">
@@ -267,8 +255,7 @@
         // --- Adding and Updating Data ---
 
         async function addNewNameToPoll() {
-            // (This function remains the same as the previous version)
-            const name = nameInput.value.trim();
+            const name = nameInput.value.trim(); // Keep original variable name
             addStatusSpan.textContent = "";
             addStatusSpan.style.color = "";
 
@@ -299,6 +286,11 @@
                     nameInput.value = "";
                     addStatusSpan.textContent = "Name added!";
                     addStatusSpan.style.color = "green";
+
+                    // --- CHANGE HERE: Mark the added name as voted in localStorage ---
+                    markNameAsVoted(name); // Use the original non-encoded name
+                    // --- END CHANGE ---
+
                     await loadPoll(currentSheetName); // Reload poll
                 } else {
                      addStatusSpan.textContent = "Error: " + (result.message || result.error || "Could not add name.");
@@ -314,11 +306,12 @@
             }
         }
 
+
         async function updateVoteOnPoll(sheetName, encodedName, voteType, buttonElement) {
             const name = decodeURIComponent(encodedName);
             console.log(`Updating ${voteType} for: ${name} in sheet: ${sheetName}`);
 
-            // --- NEW: Check localStorage before processing UPVOTE ---
+            // Check localStorage before processing UPVOTE
             if (voteType === 'upvote') {
                 const votedNames = getVotedNames();
                 if (votedNames[name] === true) {
@@ -327,11 +320,10 @@
                     return; // Stop processing
                 }
             }
-            // --- END NEW ---
 
             const itemDiv = buttonElement.closest('.poll-item');
             const buttonsInItem = itemDiv ? itemDiv.querySelectorAll('button') : [];
-            buttonsInItem.forEach(btn => btn.disabled = true); // Disable buttons during processing
+            buttonsInItem.forEach(btn => btn.disabled = true);
 
             try {
                 const response = await fetch(`${webAppUrl}?action=updateVote&sheetName=${sheetName}&name=${encodedName}&voteType=${voteType}`);
@@ -346,25 +338,22 @@
                 console.log("Update Vote Result:", result);
 
                 if (result.success) {
-                    // --- NEW: Mark as voted in localStorage *after* successful UPVOTE ---
+                    // Mark as voted in localStorage *after* successful UPVOTE
                     if (voteType === 'upvote') {
                         markNameAsVoted(name);
                     }
-                    // --- END NEW ---
 
-                    // Reload the poll to show updated counts and button states
-                    await loadPoll(sheetName);
+                    await loadPoll(sheetName); // Reload poll
                 } else {
                     alert("Error updating vote: " + (result.error || "Unknown error"));
-                     // Don't re-enable here if loadPoll handles it, but safe fallback:
-                     // buttonsInItem.forEach(btn => btn.disabled = false);
+                     // Re-enable buttons if server reported error for this specific vote
+                     buttonsInItem.forEach(btn => btn.disabled = false);
                 }
             } catch (error) {
                 console.error("Error in updateVoteOnPoll:", error);
                 alert("Failed to update vote. Check console for details.");
                  buttonsInItem.forEach(btn => btn.disabled = false); // Re-enable on unexpected error
             }
-            // Note: buttons are implicitly re-enabled when loadPoll redraws the list.
         }
 
         // --- Initial Load ---
