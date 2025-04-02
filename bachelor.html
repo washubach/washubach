@@ -3,13 +3,51 @@
 <head>
     <title>Bachelor Poll</title>
     <style> /* Optional: Basic styling for clarity */
+        body {
+            font-family: sans-serif;
+        }
         #poll-container div {
             margin-bottom: 10px;
-            padding: 5px;
+            padding: 8px;
             border: 1px solid #eee;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #poll-container div span {
+            margin-right: auto; /* Pushes buttons to the right */
+            padding-right: 15px; /* Spacing between text and buttons */
         }
         button {
             margin-left: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        input[type="text"] {
+            padding: 6px;
+            margin-right: 5px;
+        }
+        .status-message {
+            margin-left: 10px;
+            font-style: italic;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+        }
+        .error-details {
+            color: #e74c3c; /* Softer red for details */
+            background-color: #fbeaea; /* Light pink background */
+            border: 1px solid #e74c3c;
+            padding: 10px;
+            margin-top: 5px;
+            white-space: pre-wrap; /* Allows wrapping of long lines */
+            word-break: break-all; /* Breaks long strings */
+            font-family: monospace;
+        }
+        hr {
+            margin: 20px 0;
         }
     </style>
 </head>
@@ -21,48 +59,81 @@
     <hr> <div>
         <input type="text" id="newName" placeholder="Enter a new name">
         <button onclick="addNewNameToPoll()">Add Name</button>
-         <span id="add-status" style="margin-left: 10px; color: green;"></span> </div>
+         <span id="add-status" class="status-message"></span> </div>
 
     <hr> <div>
         </div>
 
     <script>
-        const webAppUrl = "https://script.google.com/macros/s/AKfycbz6ANZkWCnjgLfbECPnBG_gBJuGOQOFdUXUokGH-BLPL5bT67A_g3_cjiVmCdzhl9JW/exec"; // Your specific Web App URL
+        // !!! IMPORTANT: Replace this with your actual Google Apps Script Web App URL !!!
+        const webAppUrl = "https://script.google.com/macros/s/AKfycbz6ANZkWCnjgLfbECPnBG_gBJuGOQOFdUXUokGH-BLPL5bT67A_g3_cjiVmCdzhl9JW/exec";
+
         const currentSheetName = "Bachelor"; // Define the sheet name for this page
 
         // --- Fetching and Displaying Data ---
 
         async function fetchData(sheetName) {
             console.log("Fetching data from:", `${webAppUrl}?action=getData&sheetName=${sheetName}`);
+            let responseData = null; // Variable to hold data outside try block if needed
+
             try {
                 const response = await fetch(`${webAppUrl}?action=getData&sheetName=${sheetName}`);
-                console.log("Fetch Response Status:", response.status); // Log status code
+                console.log("Fetch Response Status:", response.status);
 
                 if (!response.ok) {
-                    // Log error response text if fetch failed
                     const errorText = await response.text();
                     console.error("Fetch Error:", response.statusText, errorText);
                     throw new Error(`HTTP error! status: ${response.status}, message: ${response.statusText}`);
                 }
 
-                const data = await response.json(); // Try to parse JSON
-                 console.log("Raw JSON Data Received:", data); // Log the parsed data
+                responseData = await response.json(); // Assign to outer variable
+                console.log("Raw JSON Data Received:", responseData);
 
-                 // Check if the Google Apps Script returned an error object
-                 if (data && data.error) {
-                     console.error("Server-side error:", data.error);
-                     throw new Error("Server error: " + data.error);
-                 }
+                // Check if the Google Apps Script returned an error object
+                if (responseData && responseData.error) {
+                    console.error("Server-side error:", responseData.error);
+                    // Throw error with server message to be caught below
+                    throw new Error("Server error: " + responseData.error);
+                }
 
-                return data; // Return the actual data array
+                // Check if the data received is actually an array before returning
+                if (!Array.isArray(responseData)) {
+                    console.error("Data received is not an array:", responseData);
+                    // Throw specific error for non-array data
+                     throw new Error("Invalid data format: Expected an array, but received an object.");
+                }
+
+
+                return responseData; // Return the actual data array
+
             } catch (error) {
                 console.error("Error in fetchData:", error);
-                 // Display error to the user in the poll container
                 const container = document.getElementById("poll-container");
-                container.innerHTML = `<p style="color: red;">Error loading poll data: ${error.message}. Check console for details.</p>`;
+
+                // Construct the error message for the user
+                let displayError = `<span class="error-message">${error.message}</span>`;
+
+                // Check the type of error and add details if possible
+                if (error.message.startsWith("Invalid data format") && responseData) {
+                    // If we got an object when expecting an array
+                     displayError += `<br><br><strong>Raw Data Received (Object):</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`;
+                } else if (error.message.startsWith("Server error:") && responseData) {
+                     // If the server explicitly sent back an error object
+                     displayError += `<br><br><strong>Raw Error Object from Server:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`;
+                } else if (!error.message.startsWith("Server error:") && responseData && typeof responseData === 'object') {
+                    // Catch other cases where we might have the invalid object
+                     displayError += `<br><br><strong>Potentially Relevant Data Received:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`;
+                } else {
+                    // Generic fallback if no specific data available
+                    displayError += '<br><br><span style="font-style: italic;">Check browser console (F12) and Google Apps Script Executions logs for more details.</span>';
+                }
+
+                // Display error message and details in the poll container
+                container.innerHTML = `<div class="error-message">${displayError}</div>`;
                 return null; // Indicate failure
             }
         }
+
 
         async function loadPoll(sheetName) {
             const container = document.getElementById("poll-container");
@@ -70,17 +141,12 @@
 
             const data = await fetchData(sheetName);
 
-            if (data === null) return; // Stop if fetchData failed
+            if (data === null) return; // Stop if fetchData failed (error already displayed)
 
-            // Clear container *after* successful fetch
+            // Clear container *after* successful fetch and validation in fetchData
             container.innerHTML = "";
 
-             if (!Array.isArray(data)) {
-                 console.error("Data received is not an array:", data);
-                 container.innerHTML = `<p style="color: red;">Error: Received invalid data format from server.</p>`;
-                 return;
-             }
-
+             // We already validated it's an array in fetchData
              if (data.length === 0) {
                  container.innerHTML = "<p>No names added to the poll yet.</p>";
                  return;
@@ -99,15 +165,22 @@
                     const upvotes = Number(item.Upvotes) || 0;
                     const downvotes = Number(item.Downvotes) || 0;
 
-                     // Use encodeURIComponent for names that might have special characters
+                     // Use encodeURIComponent for names that might have special characters when sending data
                     const encodedName = encodeURIComponent(item.Name);
+                     // Display the decoded name
+                     const displayName = item.Name;
 
+
+                    // Use a span for the text content to allow flexbox justification
                     itemDiv.innerHTML = `
-                        <strong>${item.Name}</strong>:
-                        Upvotes: ${upvotes},
-                        Downvotes: ${downvotes}
-                        <button onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'upvote')">Upvote</button>
-                        <button onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'downvote')">Downvote</button>
+                        <span>
+                            <strong>${displayName}</strong>:
+                            Upvotes: ${upvotes},
+                            Downvotes: ${downvotes}
+                        </span>
+                        <div> <button onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'upvote')">Upvote</button>
+                            <button onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'downvote')">Downvote</button>
+                        </div>
                     `;
                     container.appendChild(itemDiv);
                 } else {
@@ -115,7 +188,7 @@
                 }
             });
 
-            console.log("Poll display updated. Current HTML:", container.innerHTML);
+            console.log("Poll display updated.");
         }
 
         // --- Adding and Updating Data ---
@@ -126,6 +199,8 @@
             const name = nameInput.value.trim(); // Trim whitespace
 
              statusSpan.textContent = ""; // Clear previous status
+             statusSpan.style.color = ""; // Reset color
+
 
             if (!name) {
                 alert("Please enter a name.");
@@ -160,7 +235,7 @@
                     statusSpan.style.color = "green";
                     await loadPoll(currentSheetName); // Reload the poll to show the new name
                 } else {
-                     // Handle specific errors like 'name already exists'
+                     // Handle specific errors like 'name already exists' or other server errors
                      statusSpan.textContent = "Error: " + (result.message || result.error || "Could not add name.");
                      statusSpan.style.color = "red";
                 }
@@ -172,7 +247,7 @@
                  // Re-enable button
                  addButton.disabled = false;
                  // Optionally clear status message after a few seconds
-                 setTimeout(() => { statusSpan.textContent = ""; }, 3000);
+                 setTimeout(() => { statusSpan.textContent = ""; statusSpan.style.color = ""; }, 4000);
             }
         }
 
@@ -182,8 +257,11 @@
              console.log(`Updating ${voteType} for: ${name} in sheet: ${sheetName}`);
 
             // Optional: Add visual feedback (e.g., disable buttons briefly)
+             const buttons = event.target.parentElement.querySelectorAll('button');
+             buttons.forEach(btn => btn.disabled = true); // Disable buttons on the specific item
 
-             try {
+
+            try {
                 const response = await fetch(`${webAppUrl}?action=updateVote&sheetName=${sheetName}&name=${encodedName}&voteType=${voteType}`);
 
                 if (!response.ok) {
@@ -197,12 +275,15 @@
 
                 if (result.success) {
                     await loadPoll(sheetName); // Reload the poll to show updated counts
+                    // Note: Buttons will be re-enabled when the poll reloads.
                 } else {
                     alert("Error updating vote: " + (result.error || "Unknown error"));
+                     buttons.forEach(btn => btn.disabled = false); // Re-enable buttons on error
                 }
             } catch (error) {
                 console.error("Error in updateVoteOnPoll:", error);
                 alert("Failed to update vote. Check console for details.");
+                 buttons.forEach(btn => btn.disabled = false); // Re-enable buttons on error
             }
         }
 
