@@ -1,33 +1,260 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bachelorette Poll</title>
+    <title>Class of 2020's Most Eligible Bachelorette Poll</title>
+    <style>
+        /* (Keep existing styles) */
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: auto;
+        }
+        #poll-container div.poll-item {
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #poll-container div.poll-item span.item-text {
+            margin-right: auto;
+            padding-right: 15px;
+        }
+        /* General Button Style */
+        button, a.nav-button {
+            margin-left: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            background-color: #eee;
+            border: 1px solid #aaa;
+            border-radius: 3px;
+            text-decoration: none; /* For <a> tags styled as buttons */
+            color: #333; /* Set text color for <a> tags */
+            display: inline-block; /* Ensures padding/margin work correctly for <a> */
+        }
+        /* Hover for actual buttons and styled links */
+        button:hover:not(:disabled), a.nav-button:hover {
+             background-color: #ddd;
+        }
+        /* Disabled state specifically for <button> elements */
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        input[type="text"] {
+            padding: 6px;
+            margin-right: 5px;
+            border: 1px solid #aaa;
+            border-radius: 3px;
+        }
+        .add-section {
+             margin-top: 20px;
+             padding-top: 15px;
+             border-top: 1px solid #eee;
+        }
+        .status-message {
+            margin-left: 10px;
+            font-style: italic;
+        }
+        .error-message {
+            color: #D8000C;
+            background-color: #FFD2D2;
+            border: 1px solid #D8000C;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+         .error-details {
+            color: #A00000;
+            background-color: #FDD;
+            border: 1px solid #A00000;
+            padding: 10px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.9em;
+         }
+         hr {
+             display: none;
+         }
+         #loading-indicator {
+             font-style: italic;
+             color: #555;
+         }
+         /* --- NEW STYLES for Navigation Buttons --- */
+         .navigation-buttons {
+            text-align: right; /* Align buttons to the right */
+            margin-bottom: 15px; /* Space below buttons */
+         }
+         .nav-button {
+             /* Inherits general button styles above */
+             margin-left: 10px; /* Spacing between nav buttons */
+         }
+         /* --- END NEW STYLES --- */
+
+    </style>
 </head>
 <body>
-    <h1>Bachelorette Poll</h1>
-    <div id="poll-container"></div>
-    <script>
-        const webAppUrl = "https://script.google.com/macros/s/AKfycbxSMbRNdScbx4Jz_1yZhmeW8tCFRwzSfoQHlu7NuhqwIUZXn4_EL2fEddl7IsKUIO0w/exec"; // Replace with the URL you copied
 
-        async function fetchData(sheetName) {
-            const response = await fetch(`${webAppUrl}?action=getData&sheetName=${sheetName}`);
-            const data = await response.json();
-            return data;
+    <div class="navigation-buttons">
+        <a href="index.html" class="nav-button">Home</a>
+        <a href="bachelor.html" class="nav-button">Bachelor Poll</a>
+    </div>
+    <h1>Bachelorette Poll</h1>
+    <p style="font-size: 0.9em; color: #333;">Names are sorted by highest upvotes. You can only upvote each name once. Please add new entries as you see fit - that will also give them an upvote.</p>
+
+    <div id="poll-container">
+        <p id="loading-indicator">Loading poll...</p>
+    </div>
+
+    <div class="add-section">
+        <input type="text" id="newName" placeholder="Enter a new name">
+        <button onclick="addNewNameToPoll()">Add Name</button>
+         <span id="add-status" class="status-message"></span>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const webAppUrl = "https://script.google.com/macros/s/AKfycbyq_WFXfVJ-q-mJHlPpI3xRTO97Vh9eZEHhMFF2Dywc1cmkOWxF9n1cufdV06EYcbZG/exec"; // Your current deployment URL
+        const currentSheetName = "Bachelorette";
+        const VOTE_STORAGE_KEY = 'bachelorettePollVotes';
+
+        // --- DOM Elements ---
+        const pollContainer = document.getElementById("poll-container");
+        const nameInput = document.getElementById("newName");
+        const addStatusSpan = document.getElementById("add-status");
+        const loadingIndicator = document.getElementById("loading-indicator");
+
+        // --- Local Storage Helpers ---
+        function getVotedNames() {
+            try {
+                const storedVotes = localStorage.getItem(VOTE_STORAGE_KEY);
+                if (storedVotes) {
+                    const parsedVotes = JSON.parse(storedVotes);
+                    if (typeof parsedVotes === 'object' && parsedVotes !== null && !Array.isArray(parsedVotes)) { return parsedVotes; }
+                }
+            } catch (error) { console.error("Error reading votes from localStorage:", error); }
+            return {};
+        }
+        function markNameAsVoted(name) {
+            if (!name) return;
+            try {
+                const currentVotes = getVotedNames();
+                currentVotes[name] = true;
+                localStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(currentVotes));
+                console.log(`Stored vote for ${name} in localStorage.`);
+            } catch (error) { console.error(`Error saving vote for ${name} to localStorage:`, error); }
         }
 
-        async function loadPoll() {
-            const data = await fetchData("Bachelorette");
-            const container = document.getElementById("poll-container");
-            container.innerHTML = "";
+        // --- Fetching and Displaying Data ---
+        async function fetchData(sheetName) {
+            console.log("Fetching data from:", `${webAppUrl}?action=getData&sheetName=${sheetName}`);
+            let responseData = null;
+            try {
+                const response = await fetch(`${webAppUrl}?action=getData&sheetName=${sheetName}`);
+                console.log("Fetch Response Status:", response.status);
+                if (!response.ok) {
+                    const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status}, message: ${response.statusText}`);
+                }
+                responseData = await response.json();
+                console.log("Raw JSON Data Received:", responseData);
+                if (responseData && responseData.error) { throw new Error("Server error: " + responseData.error); }
+                if (!Array.isArray(responseData)) { throw new Error("Invalid data format: Expected an array, but received an object."); }
+                return responseData;
+            } catch (error) {
+                console.error("Error in fetchData:", error);
+                let displayError = `<span class="error-message">${error.message}</span>`; let detailsAvailable = false;
+                if (error.message.startsWith("Invalid data format") && responseData) { displayError += `<br><br><strong>Raw Data Received (Object):</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`; detailsAvailable = true; }
+                else if (error.message.startsWith("Server error:") && responseData) { displayError += `<br><br><strong>Raw Error Object from Server:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`; detailsAvailable = true; }
+                else if (!error.message.startsWith("Server error:") && responseData && typeof responseData === 'object') { displayError += `<br><br><strong>Potentially Relevant Data Received:</strong><div class="error-details">${JSON.stringify(responseData, null, 2)}</div>`; detailsAvailable = true; }
+                if (!detailsAvailable) { displayError += '<br><br><span style="font-size: 0.9em; font-style: italic;">Check browser console (F12) and Google Apps Script Executions logs for more details.</span>'; }
+                pollContainer.innerHTML = `<div class="error-message">${displayError}</div>`; return null;
+            }
+        }
+
+        async function loadPoll(sheetName) {
+            loadingIndicator.style.display = 'block';
+            pollContainer.innerHTML = ''; pollContainer.appendChild(loadingIndicator);
+            const data = await fetchData(sheetName);
+            loadingIndicator.style.display = 'none';
+            if (data === null) return;
+            pollContainer.innerHTML = "";
+            if (data.length === 0) { pollContainer.innerHTML = "<p>No names added to the poll yet.</p>"; return; }
+
+            data.sort((a, b) => (Number(b.Upvotes) || 0) - (Number(a.Upvotes) || 0)); // Sort highest first
+            const votedNames = getVotedNames();
 
             data.forEach(item => {
-                const itemDiv = document.createElement("div");
-                itemDiv.textContent = `${item.Name}: Upvotes: ${item.Upvotes}, Downvotes: ${item.Downvotes}`;
-                container.appendChild(itemDiv);
+                if (item && typeof item === 'object' && 'Name' in item) {
+                    const itemDiv = document.createElement("div"); itemDiv.className = 'poll-item';
+                    const upvotes = Number(item.Upvotes) || 0;
+                    const encodedName = encodeURIComponent(item.Name); const displayName = item.Name;
+                    const isAlreadyUpvoted = votedNames[displayName] === true;
+                    const upvoteButtonDisabled = isAlreadyUpvoted ? 'disabled' : '';
+                    const upvoteButtonText = isAlreadyUpvoted ? '✅ Voted' : '⬆️ Upvote';
+                    const upvoteTooltip = isAlreadyUpvoted ? `You already upvoted ${displayName}` : `Upvote ${displayName}`;
+
+                    // Display Upvotes only
+                    itemDiv.innerHTML = `
+                        <span class="item-text">
+                            <strong>${displayName}</strong> &nbsp; | &nbsp; Upvotes: ${upvotes}
+                        </span>
+                        <div>
+                            <button title="${upvoteTooltip}" onclick="updateVoteOnPoll('${sheetName}', '${encodedName}', 'upvote', this)" ${upvoteButtonDisabled}>${upvoteButtonText}</button>
+                            </div>`;
+                    pollContainer.appendChild(itemDiv);
+                } else { console.warn("Skipping invalid item:", item); }
             });
+            console.log("Poll display updated and sorted.");
         }
 
-        loadPoll();
+        // --- Adding and Updating Data ---
+        async function addNewNameToPoll() {
+            const name = nameInput.value.trim(); addStatusSpan.textContent = ""; addStatusSpan.style.color = "";
+            if (!name) { alert("Please enter an eligible bachelorette"); return; } // Your customized text
+            const addButton = nameInput.nextElementSibling; addButton.disabled = true;
+            addStatusSpan.textContent = "Adding..."; addStatusSpan.style.color = "orange";
+            try {
+                const encodedName = encodeURIComponent(name);
+                const response = await fetch(`${webAppUrl}?action=addData&sheetName=${currentSheetName}&name=${encodedName}`);
+                if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status}`); }
+                const result = await response.json(); console.log("Add Name Result:", result);
+                if (result.success) {
+                    nameInput.value = ""; addStatusSpan.textContent = "Oh, that's a good add"; addStatusSpan.style.color = "green"; // Your customized text
+                    markNameAsVoted(name); await loadPoll(currentSheetName);
+                } else { addStatusSpan.textContent = "Error: " + (result.message || result.error || "Could not add name."); addStatusSpan.style.color = "red"; }
+            } catch (error) {
+                console.error("Error in addNewNameToPoll:", error); addStatusSpan.textContent = "Error adding name. Check console."; addStatusSpan.style.color = "red";
+            } finally { addButton.disabled = false; setTimeout(() => { addStatusSpan.textContent = ""; addStatusSpan.style.color = ""; }, 4000); }
+        }
+
+        async function updateVoteOnPoll(sheetName, encodedName, voteType, buttonElement) {
+            const name = decodeURIComponent(encodedName);
+            console.log(`Updating ${voteType} for: ${name} in sheet: ${sheetName}`);
+            if (voteType !== 'upvote') { console.log(`Ignoring non-upvote action: ${voteType}`); return; } // Only process upvotes
+
+            const votedNames = getVotedNames();
+            if (votedNames[name] === true) { alert(`You have already upvoted "${name}".`); return; } // Your customized text
+
+            const itemDiv = buttonElement.closest('.poll-item'); const buttonsInItem = itemDiv ? itemDiv.querySelectorAll('button') : [];
+            buttonsInItem.forEach(btn => btn.disabled = true);
+            try {
+                const response = await fetch(`${webAppUrl}?action=updateVote&sheetName=${sheetName}&name=${encodedName}&voteType=upvote`); // Force upvote type
+                if (!response.ok) { const errorText = await response.text(); throw new Error(`HTTP error! status: ${response.status}`); }
+                const result = await response.json(); console.log("Update Vote Result:", result);
+                if (result.success) { markNameAsVoted(name); await loadPoll(sheetName); }
+                else { alert("Error updating vote: " + (result.error || "Unknown error")); buttonsInItem.forEach(btn => btn.disabled = false); }
+            } catch (error) {
+                console.error("Error in updateVoteOnPoll:", error); alert("Failed to update vote. Check console for details."); buttonsInItem.forEach(btn => btn.disabled = false);
+            }
+        }
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => { loadPoll(currentSheetName); });
     </script>
 </body>
 </html>
